@@ -249,7 +249,7 @@ func (a *Accounting) getPeersBalances() (map[string]int64, error) {
 		}
 
 		if val, ok := peersBalances[addr.String()]; !ok {
-			peersBalances[addr.String()] = int64(val)
+			peersBalances[addr.String()] = val
 		}
 
 		return false, nil
