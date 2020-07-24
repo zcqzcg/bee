@@ -1,3 +1,7 @@
+// Copyright 2020 The Swarm Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.package mock
+
 package mock
 
 import (
@@ -123,7 +127,7 @@ func (s *Service) Balances() (map[string]int64, error) {
 	if s.balancesFunc != nil {
 		return s.balancesFunc()
 	}
-	return nil, nil
+	return s.balances, nil
 }
 
 // Option is the option passed to the mock accounting service

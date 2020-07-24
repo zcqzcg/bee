@@ -15,7 +15,10 @@ import (
 	"sync"
 )
 
-var _ Interface = (*Accounting)(nil)
+var (
+	_              Interface = (*Accounting)(nil)
+	balancesPrefix string    = "balance_"
+)
 
 // Interface is the main interface for Accounting
 type Interface interface {
@@ -180,13 +183,12 @@ func (a *Accounting) Balance(peer swarm.Address) (int64, error) {
 }
 
 func (a *Accounting) Balances() (map[string]int64, error) {
-	peerBalance, err := a.getPeersBalances()
-	return peerBalance, err
+	return a.getPeersBalances()
 }
 
 // get the balance storage key for the given peer
 func balanceKey(peer swarm.Address) string {
-	return fmt.Sprintf("balance_%s", peer.String())
+	return fmt.Sprintf("%s%s", balancesPrefix, peer.String())
 }
 
 // getPeerBalance gets the PeerBalance for a given peer
@@ -223,25 +225,21 @@ func (a *Accounting) getPeerBalance(peer swarm.Address) (*PeerBalance, error) {
 	return peerBalance, nil
 }
 
-func (pb *PeerBalance) freeBalance() int64 {
-	return pb.balance - int64(pb.reserved)
-}
-
 func (a *Accounting) getPeersBalances() (map[string]int64, error) {
 	peersBalances := make(map[string]int64)
 
+	a.balancesMu.Lock()
 	for peer, balance := range a.balances {
 		peersBalances[peer] = balance.balance
 	}
+	a.balancesMu.Unlock()
 
-	err := a.store.Iterate("balance_", func(key, val []byte) (stop bool, err error) {
-
+	err := a.store.Iterate(balancesPrefix, func(key, val []byte) (stop bool, err error) {
 		k := string(key)
-		split := strings.SplitAfter(k, "balance_")
+		split := strings.SplitAfter(k, balancesPrefix)
 		if len(split) != 2 {
 			return false, fmt.Errorf("invalid overlay key: %s", k)
 		}
-
 		addr, err := swarm.ParseHexAddress(split[1])
 
 		if err != nil {
@@ -256,4 +254,8 @@ func (a *Accounting) getPeersBalances() (map[string]int64, error) {
 	})
 
 	return peersBalances, err
+}
+
+func (pb *PeerBalance) freeBalance() int64 {
+	return pb.balance - int64(pb.reserved)
 }

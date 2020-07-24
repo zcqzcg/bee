@@ -56,7 +56,7 @@ func TestBalancesError(t *testing.T) {
 		AccountingOpts: []mock.Option{mock.WithBalancesFunc(balancesFunc)},
 	})
 
-	jsonhttptest.ResponseDirect(t, testServer.Client, http.MethodGet, "/balances", nil, http.StatusOK, debugapi.BalancesResponse{})
+	jsonhttptest.ResponseDirect(t, testServer.Client, http.MethodGet, "/balances", nil, http.StatusOK, debugapi.BalancesResponseWErr{Error: "ASDF"})
 }
 
 func TestBalancesPeersOK(t *testing.T) {

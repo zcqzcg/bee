@@ -1,11 +1,15 @@
+// Copyright 2020 The Swarm Authors. All rights reserved.
+// Use of this source code is governed by a BSD-style
+// license that can be found in the LICENSE file.package debugapi
+
 package debugapi
 
 import (
-	"sort"
-
+	"fmt"
 	"github.com/ethersphere/bee/pkg/jsonhttp"
 	"github.com/ethersphere/bee/pkg/swarm"
 	"github.com/gorilla/mux"
+	"sort"
 
 	"net/http"
 )
@@ -17,6 +21,11 @@ type balanceResponse struct {
 
 type balancesResponse struct {
 	Balances []balanceResponse `json:"balances"`
+}
+
+type balancesResponseWErr struct {
+	Balances []balanceResponse `json:"balances"`
+	Error    string            `json:"error"`
 }
 
 func (s *server) balancesHandler(w http.ResponseWriter, r *http.Request) {
@@ -43,6 +52,10 @@ func (s *server) balancesHandler(w http.ResponseWriter, r *http.Request) {
 		})
 	}
 
+	if err != nil {
+		jsonhttp.OK(w, balancesResponseWErr{Balances: balResponses, Error: fmt.Sprintf("%v", err)})
+		return
+	}
 	jsonhttp.OK(w, balancesResponse{Balances: balResponses})
 
 }
