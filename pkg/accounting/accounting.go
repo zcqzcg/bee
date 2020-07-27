@@ -246,8 +246,14 @@ func (a *Accounting) getPeersBalances() (map[string]int64, error) {
 			return false, err
 		}
 
-		if val, ok := peersBalances[addr.String()]; !ok {
-			peersBalances[addr.String()] = val
+		if _, ok := peersBalances[addr.String()]; !ok {
+			var storevalue int64
+			err = a.store.Get(balanceKey(addr), &storevalue)
+			if err != nil {
+				a.logger.Debugf("store operation error for peer %v: %v", addr.String(), err)
+				return false, nil
+			}
+			peersBalances[addr.String()] = storevalue
 		}
 
 		return false, nil
