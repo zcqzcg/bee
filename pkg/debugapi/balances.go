@@ -22,11 +22,6 @@ type balancesResponse struct {
 	Balances []balanceResponse `json:"balances"`
 }
 
-type balancesResponseWErr struct {
-	Balances []balanceResponse `json:"balances"`
-	Error    string            `json:"error"`
-}
-
 func (s *server) balancesHandler(w http.ResponseWriter, r *http.Request) {
 
 	balances, err := s.Accounting.Balances()

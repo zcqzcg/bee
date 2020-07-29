@@ -14,6 +14,5 @@ type (
 	ListPinnedChunksResponse = listPinnedChunksResponse
 	TagResponse              = tagResponse
 	BalancesResponse         = balancesResponse
-	BalancesResponseWErr     = balancesResponseWErr
 	BalanceResponse          = balanceResponse
 )
