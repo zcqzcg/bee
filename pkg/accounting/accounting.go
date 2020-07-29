@@ -131,7 +131,7 @@ func (a *Accounting) Credit(peer swarm.Address, price uint64) error {
 
 	a.logger.Tracef("crediting peer %v with price %d, new balance is %d", peer, price, nextBalance)
 
-	err = a.store.Put(balanceKey(peer), nextBalance)
+	err = a.store.Put(peerBalanceKey(peer), nextBalance)
 	if err != nil {
 		return err
 	}
@@ -158,7 +158,7 @@ func (a *Accounting) Debit(peer swarm.Address, price uint64) error {
 
 	a.logger.Tracef("debiting peer %v with price %d, new balance is %d", peer, price, nextBalance)
 
-	err = a.store.Put(balanceKey(peer), nextBalance)
+	err = a.store.Put(peerBalanceKey(peer), nextBalance)
 	if err != nil {
 		return err
 	}
@@ -182,12 +182,8 @@ func (a *Accounting) Balance(peer swarm.Address) (int64, error) {
 	return peerBalance.balance, nil
 }
 
-func (a *Accounting) Balances() (map[string]int64, error) {
-	return a.getPeersBalances()
-}
-
 // get the balance storage key for the given peer
-func balanceKey(peer swarm.Address) string {
+func peerBalanceKey(peer swarm.Address) string {
 	return fmt.Sprintf("%s%s", balancesPrefix, peer.String())
 }
 
@@ -202,7 +198,7 @@ func (a *Accounting) getPeerBalance(peer swarm.Address) (*PeerBalance, error) {
 	if !ok {
 		// balance not yet in memory, load from state store
 		var balance int64
-		err := a.store.Get(balanceKey(peer), &balance)
+		err := a.store.Get(peerBalanceKey(peer), &balance)
 		if err == nil {
 			peerBalance = &PeerBalance{
 				balance:  balance,
@@ -225,7 +221,7 @@ func (a *Accounting) getPeerBalance(peer swarm.Address) (*PeerBalance, error) {
 	return peerBalance, nil
 }
 
-func (a *Accounting) getPeersBalances() (map[string]int64, error) {
+func (a *Accounting) Balances() (map[string]int64, error) {
 	peersBalances := make(map[string]int64)
 
 	a.balancesMu.Lock()
@@ -233,6 +229,17 @@ func (a *Accounting) getPeersBalances() (map[string]int64, error) {
 		peersBalances[peer] = balance.balance
 	}
 	a.balancesMu.Unlock()
+
+	err := a.CompleteFromStore(peersBalances)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return peersBalances, nil
+}
+
+func (a *Accounting) CompleteFromStore(s map[string]int64) error {
 
 	err := a.store.Iterate(balancesPrefix, func(key, val []byte) (stop bool, err error) {
 		k := string(key)
@@ -246,20 +253,21 @@ func (a *Accounting) getPeersBalances() (map[string]int64, error) {
 			return false, err
 		}
 
-		if _, ok := peersBalances[addr.String()]; !ok {
+		if _, ok := s[addr.String()]; !ok {
 			var storevalue int64
-			err = a.store.Get(balanceKey(addr), &storevalue)
+			err = a.store.Get(peerBalanceKey(addr), &storevalue)
 			if err != nil {
 				a.logger.Debugf("store operation error for peer %v: %v", addr.String(), err)
 				return false, nil
 			}
-			peersBalances[addr.String()] = storevalue
+			s[addr.String()] = storevalue
 		}
 
 		return false, nil
 	})
 
-	return peersBalances, err
+	return err
+
 }
 
 func (pb *PeerBalance) freeBalance() int64 {

@@ -5,7 +5,6 @@
 package debugapi
 
 import (
-	"fmt"
 	"github.com/ethersphere/bee/pkg/jsonhttp"
 	"github.com/ethersphere/bee/pkg/swarm"
 	"github.com/gorilla/mux"
@@ -33,8 +32,10 @@ func (s *server) balancesHandler(w http.ResponseWriter, r *http.Request) {
 	balances, err := s.Accounting.Balances()
 
 	if err != nil {
-		// TODO: Do we need to return an explicit error?
+		jsonhttp.InternalServerError(w, "Can not get balances")
 		s.Logger.Debugf("debug api: balances: %v", err)
+		s.Logger.Errorf("debug api: balances: %v", err)
+		return
 	}
 
 	var balResponses []balanceResponse
@@ -52,10 +53,6 @@ func (s *server) balancesHandler(w http.ResponseWriter, r *http.Request) {
 		})
 	}
 
-	if err != nil {
-		jsonhttp.OK(w, balancesResponseWErr{Balances: balResponses, Error: fmt.Sprintf("%v", err)})
-		return
-	}
 	jsonhttp.OK(w, balancesResponse{Balances: balResponses})
 
 }
