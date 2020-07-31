@@ -354,6 +354,28 @@ func newTestDB(t testing.TB, o *localstore.Options) (baseKey []byte, db *localst
 	return baseKey, db
 }
 
+func ResponseDisordered(t *testing.T, client *http.Client, method, url string, body io.Reader, responseCode int, response interface{}) {
+	t.Helper()
+
+	resp := request(t, client, method, url, body, responseCode, nil)
+	defer resp.Body.Close()
+
+	got, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		t.Fatal(err)
+	}
+	got = bytes.TrimSpace(got)
+
+	want, err := json.Marshal(response)
+	if err != nil {
+		t.Error(err)
+	}
+
+	if !bytes.Equal(got, want) {
+		t.Errorf("got response %s, want %s", string(got), string(want))
+	}
+}
+
 // check that every a exists in b
 func checkAinB(t *testing.T, a, b []swarm.Address) {
 	t.Helper()

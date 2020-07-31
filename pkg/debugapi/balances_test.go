@@ -6,14 +6,14 @@ package debugapi_test
 
 import (
 	"errors"
-	"net/http"
-	"testing"
-
 	"github.com/ethersphere/bee/pkg/accounting/mock"
 	"github.com/ethersphere/bee/pkg/debugapi"
 	"github.com/ethersphere/bee/pkg/jsonhttp"
 	"github.com/ethersphere/bee/pkg/jsonhttp/jsonhttptest"
 	"github.com/ethersphere/bee/pkg/swarm"
+	"net/http"
+	"reflect"
+	"testing"
 )
 
 func TestBalancesOK(t *testing.T) {
@@ -28,16 +28,32 @@ func TestBalancesOK(t *testing.T) {
 		AccountingOpts: []mock.Option{mock.WithBalancesFunc(balancesFunc)},
 	})
 
-	// We expect a list of items alphabetically ordered by peer:
-	jsonhttptest.ResponseDirect(t, testServer.Client, http.MethodGet, "/balances", nil, http.StatusOK, debugapi.BalancesResponse{
+	expected := debugapi.BalancesResponse{
 		[]debugapi.BalanceResponse{
+			{
+				Peer:    "DEAD",
+				Balance: 1000000000000000000,
+			},
 			{
 				Peer:    "BEEF",
 				Balance: -100000000000000000,
 			},
 			{
+				Peer:    "PARTY",
+				Balance: 0,
+			},
+		},
+	}
+	// We expect a list of items unordered by peer:
+	got := jsonhttptest.ResponseReturnDirect(t, testServer.Client, http.MethodGet, "/balances", nil, http.StatusOK, &debugapi.BalancesResponse{
+		[]debugapi.BalanceResponse{
+			{
 				Peer:    "DEAD",
 				Balance: 1000000000000000000,
+			},
+			{
+				Peer:    "BEEF",
+				Balance: -100000000000000000,
 			},
 			{
 				Peer:    "PARTY",
@@ -45,6 +61,10 @@ func TestBalancesOK(t *testing.T) {
 			},
 		},
 	})
+
+	if !reflect.DeepEqual(got, expected) {
+		t.Errorf("got %v, not as expected %v", got, expected)
+	}
 }
 
 func TestBalancesError(t *testing.T) {

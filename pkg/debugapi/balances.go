@@ -8,7 +8,6 @@ import (
 	"github.com/ethersphere/bee/pkg/jsonhttp"
 	"github.com/ethersphere/bee/pkg/swarm"
 	"github.com/gorilla/mux"
-	"sort"
 
 	"net/http"
 )
@@ -35,13 +34,7 @@ func (s *server) balancesHandler(w http.ResponseWriter, r *http.Request) {
 
 	var balResponses []balanceResponse
 
-	keys := make([]string, 0, len(balances))
 	for k := range balances {
-		keys = append(keys, k)
-	}
-	sort.Strings(keys)
-
-	for _, k := range keys {
 		balResponses = append(balResponses, balanceResponse{
 			Peer:    k,
 			Balance: balances[k],

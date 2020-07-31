@@ -242,16 +242,8 @@ func (a *Accounting) Balances() (map[string]int64, error) {
 func (a *Accounting) CompleteFromStore(s map[string]int64) error {
 
 	err := a.store.Iterate(balancesPrefix, func(key, val []byte) (stop bool, err error) {
-		k := string(key)
-		split := strings.SplitAfter(k, balancesPrefix)
-		if len(split) != 2 {
-			return false, fmt.Errorf("invalid overlay key: %s", k)
-		}
-		addr, err := swarm.ParseHexAddress(split[1])
 
-		if err != nil {
-			return false, err
-		}
+		addr := balanceKeyPeer(key)
 
 		if _, ok := s[addr.String()]; !ok {
 			var storevalue int64
@@ -268,6 +260,24 @@ func (a *Accounting) CompleteFromStore(s map[string]int64) error {
 
 	return err
 
+}
+
+func balanceKeyPeer(key []byte) swarm.Address {
+	k := string(key)
+	var ret swarm.Address
+
+	split := strings.SplitAfter(k, balancesPrefix)
+	if len(split) != 2 {
+		return ret
+	}
+
+	addr, err := swarm.ParseHexAddress(split[1])
+
+	if err != nil {
+		return ret
+	}
+
+	return addr
 }
 
 func (pb *PeerBalance) freeBalance() int64 {
