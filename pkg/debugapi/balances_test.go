@@ -28,7 +28,7 @@ func TestBalancesOK(t *testing.T) {
 		AccountingOpts: []mock.Option{mock.WithBalancesFunc(balancesFunc)},
 	})
 
-	expected := debugapi.BalancesResponse{
+	expected := &debugapi.BalancesResponse{
 		[]debugapi.BalanceResponse{
 			{
 				Peer:    "DEAD",
@@ -44,28 +44,21 @@ func TestBalancesOK(t *testing.T) {
 			},
 		},
 	}
-	// We expect a list of items unordered by peer:
 
+	// We expect a list of items unordered by peer:
 	got := jsonhttptest.ResponseReturnDirect(t, testServer.Client, http.MethodGet, "/balances", nil, http.StatusOK, &debugapi.BalancesResponse{
 		[]debugapi.BalanceResponse{
 			{
-				Peer:    "DEAD",
+				Peer:    "J",
 				Balance: 5,
 			},
-			{
-				Peer:    "BEEF",
-				Balance: -5,
-			},
-			{
-				Peer:    "PARTY",
-				Balance: 55,
-			},
 		},
-	})
+	}).(*debugapi.BalancesResponse)
 
-	if !reflect.DeepEqual(got, expected) {
-		t.Errorf("got %v, not as expected %v", got, expected)
+	if !comparisonOfBalances(got, expected) {
+		t.Errorf("Workin got %v, not as expected %v", got, expected)
 	}
+
 }
 
 func TestBalancesError(t *testing.T) {
@@ -124,4 +117,36 @@ func TestMalformedPeer(t *testing.T) {
 		Message: wantErr,
 		Code:    http.StatusBadRequest,
 	})
+}
+
+func comparisonOfBalances(a *debugapi.BalancesResponse, b *debugapi.BalancesResponse) bool {
+
+	var state bool
+
+	for akeys, _ := range a.Balances {
+		state = false
+		for bkeys, _ := range b.Balances {
+			if reflect.DeepEqual(a.Balances[akeys], b.Balances[bkeys]) {
+				state = true
+			}
+		}
+		if !state {
+			return false
+		}
+	}
+
+	for bkeys, _ := range b.Balances {
+
+		state = false
+		for akeys, _ := range a.Balances {
+			if reflect.DeepEqual(a.Balances[akeys], b.Balances[bkeys]) {
+				state = true
+			}
+		}
+		if !state {
+			return false
+		}
+	}
+
+	return true
 }

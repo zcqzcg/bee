@@ -148,6 +148,24 @@ func ResponseUnmarshal(t *testing.T, client *http.Client, method, url string, bo
 	}
 }
 
+func ResponseReturnDirect(t *testing.T, client *http.Client, method, url string, body io.Reader, responseCode int, response interface{}) interface{} {
+	t.Helper()
+
+	resp := request(t, client, method, url, body, responseCode, nil)
+	defer resp.Body.Close()
+
+	got, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		t.Fatal(err)
+	}
+	got = bytes.TrimSpace(got)
+	tmp := response
+	err = json.Unmarshal(got, &tmp)
+
+	return tmp
+
+}
+
 func request(t *testing.T, client *http.Client, method, url string, body io.Reader, responseCode int, headers http.Header) *http.Response {
 	t.Helper()
 
@@ -165,72 +183,3 @@ func request(t *testing.T, client *http.Client, method, url string, body io.Read
 	}
 	return resp
 }
-
-func ResponseReturnDirect(t *testing.T, client *http.Client, method, url string, body io.Reader, responseCode int, response interface{}) interface{} {
-	t.Helper()
-	/*
-		resp := request(t, client, method, url, body, responseCode, nil)
-		defer resp.Body.Close()
-
-		if err := json.NewDecoder(resp.Body).Decode(&response); err != nil {
-			t.Fatal(err)
-		}
-
-		got, err := ioutil.ReadAll(resp.Body)
-
-		if err != nil {
-			return err
-		}
-
-		return got */
-
-	resp := request(t, client, method, url, body, responseCode, nil)
-	defer resp.Body.Close()
-
-	got, err := ioutil.ReadAll(resp.Body)
-	if err != nil {
-		t.Fatal(err)
-	}
-	got = bytes.TrimSpace(got)
-	tmp := response
-	err = json.Unmarshal(got, &tmp)
-
-	return tmp
-
-}
-
-/*
-func request(t *testing.T, method, url string, body io.Reader, responseCode int) []byte {
-	t.Helper()
-
-	req, err := http.NewRequest(method, url, body)
-	if err != nil {
-		t.Fatal(err)
-	}
-	req.Header = headers
-	resp, err := http.Client.DefaultClient.Do(req)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if resp.StatusCode != responseCode {
-		t.Errorf("got response status %s, want %v %s", resp.Status, responseCode, http.StatusText(responseCode))
-	}
-
-	value = ioutil.ReadAll(resp)
-
-	return value
-
-
-
-// check that every a exists in b
-func checkAinB(t *testing.T, a, b []swarm.Address) {
-	t.Helper()
-	for _, v := range a {
-		if !isIn(v, b) {
-			t.Fatalf("address %s not found in slice %s", v, b)
-		}
-	}
-}
-
-
-*/
