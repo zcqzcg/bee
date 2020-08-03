@@ -45,19 +45,20 @@ func TestBalancesOK(t *testing.T) {
 		},
 	}
 	// We expect a list of items unordered by peer:
+
 	got := jsonhttptest.ResponseReturnDirect(t, testServer.Client, http.MethodGet, "/balances", nil, http.StatusOK, &debugapi.BalancesResponse{
 		[]debugapi.BalanceResponse{
 			{
 				Peer:    "DEAD",
-				Balance: 1000000000000000000,
+				Balance: 5,
 			},
 			{
 				Peer:    "BEEF",
-				Balance: -100000000000000000,
+				Balance: -5,
 			},
 			{
 				Peer:    "PARTY",
-				Balance: 0,
+				Balance: 55,
 			},
 		},
 	})

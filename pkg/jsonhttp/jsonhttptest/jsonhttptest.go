@@ -168,21 +168,34 @@ func request(t *testing.T, client *http.Client, method, url string, body io.Read
 
 func ResponseReturnDirect(t *testing.T, client *http.Client, method, url string, body io.Reader, responseCode int, response interface{}) interface{} {
 	t.Helper()
+	/*
+		resp := request(t, client, method, url, body, responseCode, nil)
+		defer resp.Body.Close()
+
+		if err := json.NewDecoder(resp.Body).Decode(&response); err != nil {
+			t.Fatal(err)
+		}
+
+		got, err := ioutil.ReadAll(resp.Body)
+
+		if err != nil {
+			return err
+		}
+
+		return got */
 
 	resp := request(t, client, method, url, body, responseCode, nil)
 	defer resp.Body.Close()
 
-	if err := json.NewDecoder(resp.Body).Decode(&response); err != nil {
+	got, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
 		t.Fatal(err)
 	}
+	got = bytes.TrimSpace(got)
+	tmp := response
+	err = json.Unmarshal(got, &tmp)
 
-	got, err := ioutil.ReadAll(resp.Body)
-
-	if err != nil {
-		return err
-	}
-
-	return got
+	return tmp
 
 }
 
