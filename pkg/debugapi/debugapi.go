@@ -10,7 +10,6 @@ package debugapi
 import (
 	"crypto/ecdsa"
 	"errors"
-	"fmt"
 	"net/http"
 	"reflect"
 	"unicode/utf8"
@@ -135,24 +134,17 @@ func New(overlay swarm.Address, publicKey, pssPublicKey ecdsa.PublicKey, ethereu
 func (s *server) SetDependency(i interface{}) error {
 	iv := reflect.ValueOf(i)
 	tv := reflect.TypeOf(i)
-	v := reflect.ValueOf(s).Elem()
 
-	for ii := 0; ii < v.NumField(); ii++ {
-		f := v.Field(ii)
-		//fmt.Println(i, f)
-		if !f.CanInterface() {
-			continue
-		}
-		fmt.Println("something")
-		tt := reflect.TypeOf(f)
-		//fmt.Println(tt, i)
-		if tv.AssignableTo(tt) {
-			fmt.Println("seeting value")
-			f.Set(iv)
+	v := reflect.ValueOf(s).Elem()
+	ts := reflect.TypeOf(s).Elem()
+
+	for ii := 0; ii < ts.NumField(); ii++ {
+		f := ts.Field(ii)
+		if tv.AssignableTo(f.Type) {
+			v.Field(ii).Set(iv)
 			return nil
 		}
-		//}
 	}
 
-	return errors.New("wtf")
+	return errors.New("dependency contract not found")
 }

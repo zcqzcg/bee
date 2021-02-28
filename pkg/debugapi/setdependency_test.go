@@ -3,7 +3,6 @@ package debugapi
 import (
 	"context"
 	"crypto/ecdsa"
-	"fmt"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
@@ -12,7 +11,6 @@ import (
 	"time"
 
 	"github.com/ethereum/go-ethereum/common"
-	"github.com/ethersphere/bee/pkg/jsonhttp"
 	"github.com/ethersphere/bee/pkg/jsonhttp/jsonhttptest"
 	"github.com/ethersphere/bee/pkg/logging"
 	pingpongmock "github.com/ethersphere/bee/pkg/pingpong/mock"
@@ -44,17 +42,18 @@ func TestSetDependency(t *testing.T) {
 
 	// set the dependency
 	pingpongService := pingpongmock.New(func(ctx context.Context, address swarm.Address, msgs ...string) (time.Duration, error) {
-		fmt.Println(1)
 		return rtt, nil
 	})
 
-	s.SetDependency(pingpongService)
+	err := s.SetDependency(pingpongService)
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	t.Run("ok", func(t *testing.T) {
-		jsonhttptest.Request(t, client, http.MethodPost, "/pingpong/abcd", http.StatusNotFound,
-			jsonhttptest.WithExpectedJSONResponse(jsonhttp.StatusResponse{
-				Code:    http.StatusNotFound,
-				Message: "peer not found",
+		jsonhttptest.Request(t, client, http.MethodPost, "/pingpong/abcd", http.StatusOK,
+			jsonhttptest.WithExpectedJSONResponse(pingpongResponse{
+				RTT: "1s",
 			}),
 		)
 	})
