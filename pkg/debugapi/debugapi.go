@@ -9,7 +9,10 @@ package debugapi
 
 import (
 	"crypto/ecdsa"
+	"errors"
+	"fmt"
 	"net/http"
+	"reflect"
 	"unicode/utf8"
 
 	"github.com/ethereum/go-ethereum/common"
@@ -103,7 +106,7 @@ func equalASCIIFold(s, t string) bool {
 	return s == t
 }
 
-func New(overlay swarm.Address, publicKey, pssPublicKey ecdsa.PublicKey, ethereumAddress common.Address, p2p p2p.DebugService, pingpong pingpong.Interface, topologyDriver topology.Driver, storer storage.Storer, logger logging.Logger, tracer *tracing.Tracer, tags *tags.Tags, accounting accounting.Interface, settlement settlement.Interface, chequebookEnabled bool, swap swap.ApiInterface, chequebook chequebook.Service, o Options) Service {
+func New(overlay swarm.Address, publicKey, pssPublicKey ecdsa.PublicKey, ethereumAddress common.Address, p2p p2p.DebugService, pingpong pingpong.Interface, topologyDriver topology.Driver, storer storage.Storer, logger logging.Logger, tracer *tracing.Tracer, tags *tags.Tags, accounting accounting.Interface, settlement settlement.Interface, chequebookEnabled bool, swap swap.ApiInterface, chequebook chequebook.Service, o Options) *server {
 	s := &server{
 		Overlay:           overlay,
 		PublicKey:         publicKey,
@@ -127,4 +130,29 @@ func New(overlay swarm.Address, publicKey, pssPublicKey ecdsa.PublicKey, ethereu
 	s.setupRouting()
 
 	return s
+}
+
+func (s *server) SetDependency(i interface{}) error {
+	iv := reflect.ValueOf(i)
+	tv := reflect.TypeOf(i)
+	v := reflect.ValueOf(s).Elem()
+
+	for ii := 0; ii < v.NumField(); ii++ {
+		f := v.Field(ii)
+		//fmt.Println(i, f)
+		if !f.CanInterface() {
+			continue
+		}
+		fmt.Println("something")
+		tt := reflect.TypeOf(f)
+		//fmt.Println(tt, i)
+		if tv.AssignableTo(tt) {
+			fmt.Println("seeting value")
+			f.Set(iv)
+			return nil
+		}
+		//}
+	}
+
+	return errors.New("wtf")
 }
