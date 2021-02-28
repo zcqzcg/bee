@@ -19,11 +19,6 @@ import (
 )
 
 func TestSetDependency(t *testing.T) {
-	//topologyDriver := topologymock.NewTopologyDriver(o.TopologyOpts...)
-	//acc := accountingmock.NewAccounting(o.AccountingOpts...)
-	//settlement := swapmock.New(o.SettlementOpts...)
-	//chequebook := chequebookmock.NewChequebook(o.ChequebookOpts...)
-	//swapserv := swapmock.NewApiInterface(o.SwapOpts...)
 	s := New(swarm.ZeroAddress, ecdsa.PublicKey{}, ecdsa.PublicKey{}, common.Address{}, nil, nil, nil, nil, logging.New(ioutil.Discard, 0), nil, nil, nil, nil, true, nil, nil, Options{})
 	ts := httptest.NewServer(s)
 	t.Cleanup(ts.Close)
