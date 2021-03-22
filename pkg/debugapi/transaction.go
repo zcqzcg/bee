@@ -116,3 +116,7 @@ func (s *Service) transactionResendHandler(w http.ResponseWriter, r *http.Reques
 
 	jsonhttp.OK(w, txHash)
 }
+
+func (s *Service) transactionBoostHandler(w http.ResponseWriter, r *http.Request) {
+
+}
