@@ -117,22 +117,30 @@ func (s *Service) sendPeers(ctx context.Context, peer swarm.Address, peers []swa
 	}()
 	w, _ := protobuf.NewWriterAndReader(stream)
 	var peersRequest pb.Peers
-	for _, p := range peers {
-		addr, err := s.addressBook.Get(p)
-		if err != nil {
-			if err == addressbook.ErrNotFound {
-				s.logger.Debugf("hive broadcast peers: peer not found in the addressbook. Skipping peer %s", p)
-				continue
+	pLock := sync.Mutex{}
+	wg := sync.WaitGroup{}
+	wg.Add(len(peers))
+	for _, speer := range peers {
+		go func(p swarm.Address) {
+			defer wg.Done()
+			addr, err := s.addressBook.Get(p)
+			if err != nil {
+				if err == addressbook.ErrNotFound {
+					s.logger.Debugf("hive broadcast peers: peer not found in the addressbook. Skipping peer %s", p)
+					return
+				}
+				return
 			}
-			return err
-		}
-
-		peersRequest.Peers = append(peersRequest.Peers, &pb.BzzAddress{
-			Overlay:   addr.Overlay.Bytes(),
-			Underlay:  addr.Underlay.Bytes(),
-			Signature: addr.Signature,
-		})
+			pLock.Lock()
+			peersRequest.Peers = append(peersRequest.Peers, &pb.BzzAddress{
+				Overlay:   addr.Overlay.Bytes(),
+				Underlay:  addr.Underlay.Bytes(),
+				Signature: addr.Signature,
+			})
+			pLock.Unlock()
+		}(speer)
 	}
+	wg.Wait()
 
 	if err := w.WriteMsgWithContext(ctx, &peersRequest); err != nil {
 		return fmt.Errorf("write Peers message: %w", err)

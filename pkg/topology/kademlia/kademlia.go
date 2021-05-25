@@ -391,8 +391,8 @@ func (k *Kad) connectionAttemptsHandler(ctx context.Context, wg *sync.WaitGroup,
 		k.depthMu.Unlock()
 
 		k.logger.Debugf("kademlia: connected to peer: %q in bin: %d", peer.addr, peer.po)
-		k.notifyManageLoop()
-		k.notifyPeerSig()
+		go k.notifyManageLoop()
+		go k.notifyPeerSig()
 	}
 
 	var (
@@ -466,8 +466,8 @@ func (k *Kad) manage() {
 		select {
 		case <-k.quit:
 			return
-		case <-time.After(30 * time.Second):
-			k.notifyManageLoop()
+		case <-time.After(15 * time.Second):
+			go k.notifyManageLoop()
 		case <-k.manageC:
 			start := time.Now()
 
@@ -673,17 +673,18 @@ func (k *Kad) connect(ctx context.Context, peer swarm.Address, ma ma.Multiaddr) 
 	case err != nil:
 		k.logger.Debugf("could not connect to peer %q: %v", peer, err)
 
-		k.waitNextMu.Lock()
 		retryTime := time.Now().Add(timeToRetry)
 		var e *p2p.ConnectionBackoffError
 		failedAttempts := 0
 		if errors.As(err, &e) {
 			retryTime = e.TryAfter()
 		} else {
+			k.waitNextMu.Lock()
 			if info, ok := k.waitNext[peer.ByteString()]; ok {
 				failedAttempts = info.failedAttempts
 			}
 			failedAttempts++
+			k.waitNextMu.Unlock()
 		}
 
 		if err := k.collector.Record(peer, metrics.IncSessionConnectionRetry()); err != nil {
@@ -692,6 +693,8 @@ func (k *Kad) connect(ctx context.Context, peer swarm.Address, ma ma.Multiaddr) 
 
 		if err := k.collector.Inspect(peer, func(ss *metrics.Snapshot) {
 			quickPrune := ss == nil || ss.HasAtMaxOneConnectionAttempt()
+
+			k.waitNextMu.Lock()
 			if (k.connectedPeers.Length() > 0 && quickPrune) || failedAttempts > maxConnAttempts {
 				delete(k.waitNext, peer.ByteString())
 				k.knownPeers.Remove(peer, swarm.Proximity(k.base.Bytes(), peer.Bytes()))
@@ -705,10 +708,10 @@ func (k *Kad) connect(ctx context.Context, peer swarm.Address, ma ma.Multiaddr) 
 					failedAttempts: failedAttempts,
 				}
 			}
+			k.waitNextMu.Unlock()
 		}); err != nil {
 			k.logger.Debugf("kademlia: connect: unable to inspect snapshot for %q: %v", peer, err)
 		}
-		k.waitNextMu.Unlock()
 
 		return err
 	case !i.Overlay.Equal(peer):
@@ -774,7 +777,7 @@ func (k *Kad) AddPeers(ctx context.Context, addrs ...swarm.Address) error {
 		po := swarm.Proximity(k.base.Bytes(), addr.Bytes())
 		k.knownPeers.Add(addr, po)
 	}
-	k.notifyManageLoop()
+	go k.notifyManageLoop()
 	return nil
 }
 
@@ -814,7 +817,7 @@ connected:
 	if err := k.connected(ctx, address); err != nil {
 		return err
 	}
-	k.notifyManageLoop()
+	go k.notifyManageLoop()
 	return nil
 }
 
@@ -843,7 +846,7 @@ func (k *Kad) connected(ctx context.Context, addr swarm.Address) error {
 	k.depth = recalcDepth(k.connectedPeers, k.radius)
 	k.depthMu.Unlock()
 
-	k.notifyPeerSig()
+	go k.notifyPeerSig()
 	return nil
 
 }
@@ -875,8 +878,8 @@ func (k *Kad) Disconnected(peer p2p.Peer) {
 	k.depth = recalcDepth(k.connectedPeers, k.radius)
 	k.depthMu.Unlock()
 
-	k.notifyManageLoop()
-	k.notifyPeerSig()
+	go k.notifyManageLoop()
+	go k.notifyPeerSig()
 }
 
 func (k *Kad) notifyPeerSig() {
@@ -1121,7 +1124,7 @@ func (k *Kad) SetRadius(r uint8) {
 	oldD := k.depth
 	k.depth = recalcDepth(k.connectedPeers, k.radius)
 	if k.depth != oldD {
-		k.notifyManageLoop()
+		go k.notifyManageLoop()
 	}
 }
 
