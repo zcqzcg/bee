@@ -34,14 +34,14 @@ const (
 	maxBootnodeAttempts    = 3 // how many attempts to dial to bootnodes before giving up
 	defaultBitSuffixLength = 3 // the number of bits used to create pseudo addresses for balancing
 
-	peerConnectionAttemptTimeout = 5 * time.Second // Timeout for establishing a new connection with peer.
+	peerConnectionAttemptTimeout = 3 * time.Second // Timeout for establishing a new connection with peer.
 )
 
 var (
 	saturationPeers             = 8
 	overSaturationPeers         = 16
 	bootnodeOverSaturationPeers = 64
-	shortRetry                  = 30 * time.Second
+	shortRetry                  = 3 * time.Second
 	timeToRetry                 = 2 * shortRetry
 	broadcastBinSize            = 4
 )
