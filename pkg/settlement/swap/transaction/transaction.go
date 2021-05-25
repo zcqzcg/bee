@@ -198,6 +198,8 @@ func prepareTransaction(ctx context.Context, request *TxRequest, from common.Add
 		gasPrice = request.GasPrice
 	}
 
+	gasPrice.Mul(gasPrice, big.NewInt(2))
+
 	if request.To != nil {
 		return types.NewTransaction(
 			nonce,
